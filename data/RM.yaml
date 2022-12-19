@@ -1,0 +1,11 @@
+
+train: /media/yuesang/G/Robotmaster/dataset/data/train.txt  # 118287 images
+val: /media/yuesang/G/Robotmaster/dataset/data/val.txt      # 5000 images
+test: /media/yuesang/G/Robotmaster/dataset/data/val.txt     # 20288 of 40670 images, submit to https://competitions.codalab.org/competitions/20794
+
+
+# number of classes
+nc: 4
+
+names: [ '1','2','3','4']
+
