@@ -32,7 +32,6 @@ class Preprocess(torch.nn.Module):
         x = x.permute(0, 3, 1, 2)  #
         return x
 
-
 def getMeronnx(opt):
     pre = Preprocess()
     # 这里输入名字，尽量自定义，后面转trt可控
@@ -65,16 +64,18 @@ def getMeronnx(opt):
     # 此时model的输入需要变为 pre的输入 pre/0
     model.graph.input[0].name = pre.graph.input[0].name
 
-    onnx.save(model, opt.onnx_save_weights)
+    save_weight_list=opt.onnx_weights.split('/')[:-1]
+    save_path=""
+    for path in save_weight_list:
+        save_path=os.path.join(save_path,path)
+    save_path=os.path.join(save_path,"merge.onnx")
+    onnx.save(model, save_path)
     os.unlink("./pre.onnx")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--onnx_weights', type=str,
-                        default='/home/yuesang/Project/PycharmProjects/yolov7-FourPoint/onnx_inference/module/yolov7.onnx',
-                        help='initial weights path')
-    parser.add_argument('--onnx_save_weights', type=str,
-                        default='/home/yuesang/Project/PycharmProjects/yolov7-FourPoint/onnx_inference/module/yolov7-merge.onnx',
+                        default='../runs/train/exp/weights/best.onnx',
                         help='initial weights path')
     parser.add_argument('--img_size', nargs='+', type=int, default=640, help='inference size (pixels)')
     opt = parser.parse_args()
