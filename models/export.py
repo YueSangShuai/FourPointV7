@@ -31,7 +31,7 @@ if __name__ == '__main__':
     parser.add_argument('--grid', action='store_false', help='export Detect() layer grid')
     parser.add_argument('--device', default='cpu', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--dynamic', action='store_true', help='dynamic ONNX axes')  # ONNX-only
-    parser.add_argument('--simplify', action='store_true', help='simplify ONNX model')  # ONNX-only
+    parser.add_argument('--simplify', action='store_false', help='simplify ONNX model')  # ONNX-only
     parser.add_argument('--export-nms', action='store_true',
                         help='export the nms part in ONNX model')  # ONNX-only, #opt.grid has to be set True for nms export to work
     parser.add_argument('--export-pre', action='store_true', help='export the pre part in ONNX model')
@@ -71,7 +71,7 @@ if __name__ == '__main__':
     model.model[-1].export = not (opt.grid or opt.export_nms)  # set Detect() layer grid export
     for _ in range(2):
         y = model(img)  # dry runs
-    output_names = None
+    output_names = ['output']
     if opt.export_nms:
         nms = models.common.NMS(conf=0.01, kpt_label=True)
         nms_export = models.common.NMS_Export(conf=0.01, kpt_label=True)
@@ -104,12 +104,12 @@ if __name__ == '__main__':
         print(f'{prefix} starting export with onnx {onnx.__version__}...')
         f = opt.weights.replace('.pt', '.onnx')  # filename
         if opt.export_nms:
-            torch.onnx.export(model_nms, img, f, verbose=False, opset_version=11, input_names=['images'],
+            torch.onnx.export(model_nms, img, f, verbose=False, opset_version=11, input_names=['input'],
                               output_names=output_names,
                               dynamic_axes={'images': {0: 'batch', 2: 'height', 3: 'width'},  # size(1,3,640,640)
                                             'output': {0: 'batch', 2: 'y', 3: 'x'}} if opt.dynamic else None)
         else:
-            torch.onnx.export(model, img, f, verbose=False, opset_version=11, input_names=['images'],
+            torch.onnx.export(model, img, f, verbose=False, opset_version=11, input_names=['input'],
                               output_names=output_names,
                               dynamic_axes={'images': {0: 'batch', 2: 'height', 3: 'width'},  # size(1,3,640,640)
                                             'output': {0: 'batch', 2: 'y', 3: 'x'}} if opt.dynamic else None)
