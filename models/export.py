@@ -23,9 +23,6 @@ from utils.activations import Hardswish, SiLU
 from utils.general import colorstr, check_img_size, check_requirements, file_size, set_logging
 from utils.torch_utils import select_device
 
-
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', type=str, default='../runs/train/exp/weights/best.pt', help='weights path')
@@ -35,7 +32,8 @@ if __name__ == '__main__':
     parser.add_argument('--device', default='cpu', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--dynamic', action='store_true', help='dynamic ONNX axes')  # ONNX-only
     parser.add_argument('--simplify', action='store_true', help='simplify ONNX model')  # ONNX-only
-    parser.add_argument('--export-nms', action='store_true', help='export the nms part in ONNX model')  # ONNX-only, #opt.grid has to be set True for nms export to work
+    parser.add_argument('--export-nms', action='store_true',
+                        help='export the nms part in ONNX model')  # ONNX-only, #opt.grid has to be set True for nms export to work
     parser.add_argument('--export-pre', action='store_true', help='export the pre part in ONNX model')
     opt = parser.parse_args()
     opt.img_size *= 2 if len(opt.img_size) == 1 else 1  # expand
@@ -70,7 +68,7 @@ if __name__ == '__main__':
                 m.act = SiLU()
         # elif isinstance(m, models.yolo.Detect):
         #     m.forward = m.forward_export  # assign forward (optional)
-    model.model[-1].export = not (opt.grid or opt.export_nms) # set Detect() layer grid export
+    model.model[-1].export = not (opt.grid or opt.export_nms)  # set Detect() layer grid export
     for _ in range(2):
         y = model(img)  # dry runs
     output_names = None
@@ -79,7 +77,7 @@ if __name__ == '__main__':
         nms_export = models.common.NMS_Export(conf=0.01, kpt_label=True)
         y_export = nms_export(y)
         y = nms(y)
-        #assert (torch.sum(torch.abs(y_export[0]-y[0]))<1e-6)
+        # assert (torch.sum(torch.abs(y_export[0]-y[0]))<1e-6)
         model_nms = torch.nn.Sequential(model, nms_export)
         model_nms.eval()
         output_names = ['detections']
@@ -106,14 +104,15 @@ if __name__ == '__main__':
         print(f'{prefix} starting export with onnx {onnx.__version__}...')
         f = opt.weights.replace('.pt', '.onnx')  # filename
         if opt.export_nms:
-            torch.onnx.export(model_nms, img, f, verbose=False, opset_version=11, input_names=['images'], output_names=output_names,
+            torch.onnx.export(model_nms, img, f, verbose=False, opset_version=11, input_names=['images'],
+                              output_names=output_names,
                               dynamic_axes={'images': {0: 'batch', 2: 'height', 3: 'width'},  # size(1,3,640,640)
                                             'output': {0: 'batch', 2: 'y', 3: 'x'}} if opt.dynamic else None)
         else:
-            torch.onnx.export(model, img, f, verbose=False, opset_version=11, input_names=['images'], output_names=output_names,
+            torch.onnx.export(model, img, f, verbose=False, opset_version=11, input_names=['images'],
+                              output_names=output_names,
                               dynamic_axes={'images': {0: 'batch', 2: 'height', 3: 'width'},  # size(1,3,640,640)
                                             'output': {0: 'batch', 2: 'y', 3: 'x'}} if opt.dynamic else None)
-
 
         # Checks
         model_onnx = onnx.load(f)  # load onnx model

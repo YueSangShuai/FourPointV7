@@ -339,11 +339,11 @@ class IKeypoint(nn.Module):
                         y_kpt_split = []
                         conf_kpt_split = []
                         for j in range(self.nkpt * 3):
-                            if (j % 3 == 0):
+                            if j % 3 == 0:
                                 x_kpt_split.append(kpt_split[j])
-                            if (j % 3 == 1):
+                            if j % 3 == 1:
                                 y_kpt_split.append(kpt_split[j])
-                            if (j % 3 == 2):
+                            if j % 3 == 2:
                                 conf_kpt_split.append(kpt_split[j])
                         # print("--------", (torch.cat(x_kpt_split, -1).size()))
                         x_kpt_split = torch.cat(x_kpt_split, -1)
