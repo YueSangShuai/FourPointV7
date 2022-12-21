@@ -8,21 +8,24 @@ from tqdm import tqdm
 
 
 def pre_img(img_file, img_mean=127.5, img_scale=1 / 127.5):
-    img = cv2.imread(img_file)[:, :, ::-1]
+    img = cv2.imread(img_file)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = cv2.resize(img, (640, 640))
-    img = (img - img_mean) * img_scale
 
-    img = np.asarray(img, dtype=np.float32)
-    img = np.expand_dims(img, 0)
-    img = img.transpose(0, 3, 1, 2)
+    image = img.astype(np.float32) / 255.0
+    image = image.transpose((2, 0, 1))  # (3, 96, 96)
+    image = image[np.newaxis, :, :, :]  # (1, 3, 96, 96)
+    image = np.array(image, dtype=np.float32)
 
-    return img
+    return image
 
 
 def model_inference(model_path=None, input=None):
     # onnx_model = onnx.load(args.model_path)
     session = onnxruntime.InferenceSession(model_path)
-    output = session.run([], {session.get_inputs()[0].name: input})
+
+
+    output = session.run([session.get_outputs()[0].name], {session.get_inputs()[0].name: input})
     return output
 
 
@@ -39,7 +42,7 @@ def post_process(img_file, output, nc=4, score_threshold=0.1):
     det_labels = np.argmax(output[0][-1, :, 5:5 + nc], axis=1)
     kpts = output[0][-1, :, 5 + nc:]
 
-
+    print(det_scores.max())
     img = cv2.imread(img_file)
     img = cv2.resize(img, (640, 640))
 
@@ -57,7 +60,7 @@ def post_process(img_file, output, nc=4, score_threshold=0.1):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_path", type=str,
-                        default="/home/yuesang/Project/PycharmProjects/FourPointV7/onnx_inference/yolov7-w6-pose.onnx")
+                        default="/home/yuesang/Project/PycharmProjects/FourPointV7/runs/train/exp/weights/best.onnx")
     parser.add_argument("--img_path", type=str,
                         default="/home/yuesang/Project/PycharmProjects/yolov7-FourPoint/data/image/1.jpg")
     opt = parser.parse_args()
