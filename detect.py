@@ -170,7 +170,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', nargs='+', type=str, default='runs/train/exp3/weights/best.pt',
                         help='model.pt path(s)')
-    parser.add_argument('--source', type=str, default='data/image/2.jpg', help='source')  # file/folder, 0 for webcam
+    parser.add_argument('--source', type=str, default='data/image/4.jpg', help='source')  # file/folder, 0 for webcam
     parser.add_argument('--img-size', nargs='+', type=int, default=640, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.55, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.25, help='IOU threshold for NMS')
