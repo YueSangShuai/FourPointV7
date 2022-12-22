@@ -78,8 +78,8 @@ def letterbox(im, color=(114, 114, 114), new_shape=[640, 640], auto=True, scaleu
 
 def model_inference(model_path=None, input=None):
     # onnx_model = onnx.load(args.model_path)
-    session = onnxruntime.InferenceSession(model_path)
-
+    session = onnxruntime.InferenceSession(model_path, providers=['CUDAExecutionProvider'])
+    # session.set_providers(['CUDAExecutionProvider'], [{'device_id': 0}])
     outname = [i.name for i in session.get_outputs()]
     inname = [i.name for i in session.get_inputs()]
 
