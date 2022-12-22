@@ -25,7 +25,7 @@ from utils.torch_utils import select_device
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', type=str, default='../runs/train/exp2/weights/best.pt', help='weights path')
+    parser.add_argument('--weights', type=str, default='../runs/train/exp3/weights/best.pt', help='weights path')
     parser.add_argument('--img-size', nargs='+', type=int, default=[640, 640], help='image size')  # height, width
     parser.add_argument('--batch-size', type=int, default=1, help='batch size')
     parser.add_argument('--grid', action='store_false', help='export Detect() layer grid')

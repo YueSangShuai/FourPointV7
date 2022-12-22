@@ -77,8 +77,6 @@ def detect(opt):
         # pred = model(img, augment=opt.augment)[0]
         pred = model(img)[0]
 
-
-        print(pred[..., 4].max())
         # Apply NMS
         pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms,
                                    kpt_label=kpt_label, nc=model.yaml['nc'], nkpt=model.yaml['nkpt'])
@@ -170,9 +168,9 @@ def detect(opt):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', nargs='+', type=str, default='runs/train/exp2/weights/best.pt',
+    parser.add_argument('--weights', nargs='+', type=str, default='runs/train/exp3/weights/best.pt',
                         help='model.pt path(s)')
-    parser.add_argument('--source', type=str, default='data/image/1.jpg', help='source')  # file/folder, 0 for webcam
+    parser.add_argument('--source', type=str, default='data/image/2.jpg', help='source')  # file/folder, 0 for webcam
     parser.add_argument('--img-size', nargs='+', type=int, default=640, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.55, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.25, help='IOU threshold for NMS')
