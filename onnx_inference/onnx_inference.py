@@ -85,8 +85,8 @@ def model_inference(model_path=None):
     return session
 
 
-def post_process(imshow_img, output, kpts=17, conf_threshold=0.3, iou_threshold=0.5, kpts_threshold=0.5,
-                 videomode=False):
+def post_process(imshow_img, output, nc=1, kpts=17, conf_threshold=0.3, iou_threshold=0.5, kpts_threshold=0.5,
+                 videomode=False, inference_time=0):
     remove = np.zeros(output[0].shape[1], int)
     rescult_data = []
     sout_output = sorted(output[0][0], key=itemgetter(4), reverse=True)
@@ -113,8 +113,11 @@ def post_process(imshow_img, output, kpts=17, conf_threshold=0.3, iou_threshold=
                 remove[jdx] = 1
 
     # TODO:show_rescult
+
+    cv2.putText(imshow_img, "FPS-{}".format(1000/inference_time), (0, 30), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255), 5)
     for idx in range(len(rescult_data)):
         det_bbox = rescult_data[idx][:4].reshape(1, 4).astype(np.int)
+        label = np.argmax(rescult_data[idx][5:5 + nc])
         x = xywh2xyxy(det_bbox)
         cv2.rectangle(imshow_img, (x[0][0], x[0][1]), (x[0][2], x[0][3]), (0, 0, 255), 2)
         det_kpts = rescult_data[idx][-3 * kpts:].reshape(1, 3 * kpts).astype(np.float)
@@ -122,8 +125,12 @@ def post_process(imshow_img, output, kpts=17, conf_threshold=0.3, iou_threshold=
         det_points = det_kpts[0][:2 * kpts]
         det_points_conf = det_kpts[0][2 * kpts:]
 
+
+        cv2.putText(imshow_img, str(label), (int(det_points[0]), int(det_points[4])),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255), 5)
         for jdx in range(len(det_points_conf)):
             temp = det_points_conf[jdx]
+
             if det_points_conf[jdx] > kpts_threshold:
                 temp1 = int(det_points[jdx])
                 temp2 = int(det_points[jdx + 4])
@@ -139,25 +146,23 @@ def post_process(imshow_img, output, kpts=17, conf_threshold=0.3, iou_threshold=
         cv2.waitKey(1)
 
 
-def model_inference_image(model_path, img_path=None, kpts=17, image_size=[640, 640], conf_threshold=0.3,
+def model_inference_image(model_path, img_path=None, nc=1, kpts=17, image_size=[640, 640], conf_threshold=0.3,
                           iou_threshold=0.5, kpts_threshold=0.5):
     img = cv2.imread(img_path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     image = img.copy()
-
     imshow_img, im = letterbox(image, new_shape=image_size, auto=False)[:2]
 
+    start = time.time()
     session = model_inference(model_path)
-    outname = [i.name for i in session.get_outputs()]
-    inname = [i.name for i in session.get_inputs()]
-    inp = {inname[0]: im}
-    output = session.run(outname, inp)
+    output = session.run([], {session.get_inputs()[0].name: im})
+    inference_time = (int(round(time.time() * 1000))) - (int(round(start * 1000)))
 
-    post_process(imshow_img, output, kpts=kpts, conf_threshold=conf_threshold, iou_threshold=iou_threshold,
-                 kpts_threshold=kpts_threshold)
+    post_process(imshow_img, output, nc=nc, kpts=kpts, conf_threshold=conf_threshold, iou_threshold=iou_threshold,
+                 kpts_threshold=kpts_threshold,inference_time=inference_time)
 
 
-def model_inference_video(model_path=None, video_path=None, kpts=17, image_size=[640, 640], conf_threshold=0.3,
+def model_inference_video(model_path=None, video_path=None, nc=1, kpts=17, image_size=[640, 640], conf_threshold=0.3,
                           iou_threshold=0.5, kpts_threshold=0.5):
     cap = cv2.VideoCapture(video_path)
     session = model_inference(model_path)
@@ -170,11 +175,12 @@ def model_inference_video(model_path=None, video_path=None, kpts=17, image_size=
         image = img.copy()
         imshow_img, im = letterbox(image, new_shape=image_size, auto=False)[:2]
 
-        inp = {inname[0]: im}
-        output = session.run(outname, inp)
+        start = time.time()
+        output = session.run([], {session.get_inputs()[0].name: im})
+        inference_time = (int(round(time.time() * 1000))) - (int(round(start * 1000)))
 
-        post_process(imshow_img, output, kpts=kpts, conf_threshold=conf_threshold, iou_threshold=iou_threshold,
-                     videomode=True, kpts_threshold=kpts_threshold)
+        post_process(imshow_img, output, nc=nc, kpts=kpts, conf_threshold=conf_threshold, iou_threshold=iou_threshold,
+                     videomode=True, kpts_threshold=kpts_threshold,inference_time=inference_time)
 
 
 if __name__ == "__main__":
@@ -191,10 +197,11 @@ if __name__ == "__main__":
     opt = parser.parse_args()
 
     if not opt.img_path == "":
-        model_inference_image(model_path=opt.model_path, img_path=opt.img_path, kpts=opt.kpts, image_size=opt.img_size,
+        model_inference_image(model_path=opt.model_path, img_path=opt.img_path, nc=opt.nc, kpts=opt.kpts,
+                              image_size=opt.img_size,
                               conf_threshold=opt.conf_thresholf, iou_threshold=opt.iou_threshold,
                               kpts_threshold=opt.kpts_threshold)
     if not opt.video_path == "":
-        model_inference_video(model_path=opt.model_path, video_path=opt.video_path, kpts=opt.kpts,
+        model_inference_video(model_path=opt.model_path, video_path=opt.video_path, nc=opt.nc, kpts=opt.kpts,
                               image_size=opt.img_size, conf_threshold=opt.conf_thresholf,
                               iou_threshold=opt.iou_threshold, kpts_threshold=opt.kpts_threshold)
