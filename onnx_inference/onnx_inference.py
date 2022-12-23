@@ -76,20 +76,17 @@ def letterbox(im, color=(114, 114, 114), new_shape=[640, 640], auto=True, scaleu
     return image, im, r, (dw, dh)
 
 
-def model_inference(model_path=None, input=None):
+def model_inference(model_path=None):
     # onnx_model = onnx.load(args.model_path)
-    session = onnxruntime.InferenceSession(model_path, providers=['CUDAExecutionProvider'])
-    # session.set_providers(['CUDAExecutionProvider'], [{'device_id': 0}])
-    outname = [i.name for i in session.get_outputs()]
-    inname = [i.name for i in session.get_inputs()]
+    session = onnxruntime.InferenceSession(model_path, providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+    session.get_provider_options()
+    session.set_providers(['CUDAExecutionProvider'], [{'device_id': 0}])
 
-    inp = {inname[0]: input}
-
-    output = session.run(outname, inp)
-    return output
+    return session
 
 
-def post_process(imshow_img, output,kpts=17,conf_threshold=0.3, iou_threshold=0.5, kpts_threshold=0.5,videomode=False):
+def post_process(imshow_img, output, kpts=17, conf_threshold=0.3, iou_threshold=0.5, kpts_threshold=0.5,
+                 videomode=False):
     remove = np.zeros(output[0].shape[1], int)
     rescult_data = []
     sout_output = sorted(output[0][0], key=itemgetter(4), reverse=True)
@@ -120,20 +117,19 @@ def post_process(imshow_img, output,kpts=17,conf_threshold=0.3, iou_threshold=0.
         det_bbox = rescult_data[idx][:4].reshape(1, 4).astype(np.int)
         x = xywh2xyxy(det_bbox)
         cv2.rectangle(imshow_img, (x[0][0], x[0][1]), (x[0][2], x[0][3]), (0, 0, 255), 2)
-        det_kpts = rescult_data[idx][-3*kpts:].reshape(1, 3*kpts).astype(np.float)
+        det_kpts = rescult_data[idx][-3 * kpts:].reshape(1, 3 * kpts).astype(np.float)
 
-        det_points=det_kpts[0][:2*kpts]
-        det_points_conf=det_kpts[0][2*kpts:]
+        det_points = det_kpts[0][:2 * kpts]
+        det_points_conf = det_kpts[0][2 * kpts:]
 
         for jdx in range(len(det_points_conf)):
-            temp=det_points_conf[jdx]
-            if det_points_conf[jdx]>kpts_threshold:
-                temp1=int(det_points[jdx])
-                temp2=int(det_points[jdx+4])
-                cv2.circle(imshow_img,(temp1,temp2),5,(255,0,255),-1)
+            temp = det_points_conf[jdx]
+            if det_points_conf[jdx] > kpts_threshold:
+                temp1 = int(det_points[jdx])
+                temp2 = int(det_points[jdx + 4])
+                cv2.circle(imshow_img, (temp1, temp2), 5, (255, 0, 255), -1)
 
-
-        temp=det_kpts
+        temp = det_kpts
 
     if not videomode:
         cv2.imshow('result', imshow_img)
@@ -143,42 +139,62 @@ def post_process(imshow_img, output,kpts=17,conf_threshold=0.3, iou_threshold=0.
         cv2.waitKey(1)
 
 
-def model_inference_image(model_path, img_path=None,kpts=17,image_size=[640, 640], conf_threshold=0.3, iou_threshold=0.5,kpts_threshold=0.5):
+def model_inference_image(model_path, img_path=None, kpts=17, image_size=[640, 640], conf_threshold=0.3,
+                          iou_threshold=0.5, kpts_threshold=0.5):
     img = cv2.imread(img_path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     image = img.copy()
+
     imshow_img, im = letterbox(image, new_shape=image_size, auto=False)[:2]
 
-    output = model_inference(model_path, im)
-    post_process(imshow_img, output, kpts=kpts,conf_threshold=conf_threshold, iou_threshold=iou_threshold,kpts_threshold=kpts_threshold)
+    session = model_inference(model_path)
+    outname = [i.name for i in session.get_outputs()]
+    inname = [i.name for i in session.get_inputs()]
+    inp = {inname[0]: im}
+    output = session.run(outname, inp)
+
+    post_process(imshow_img, output, kpts=kpts, conf_threshold=conf_threshold, iou_threshold=iou_threshold,
+                 kpts_threshold=kpts_threshold)
 
 
-def model_inference_video(model_path=None, video_path=None, kpts=17,image_size=[640, 640], conf_threshold=0.3,
-                          iou_threshold=0.5,kpts_threshold=0.5):
+def model_inference_video(model_path=None, video_path=None, kpts=17, image_size=[640, 640], conf_threshold=0.3,
+                          iou_threshold=0.5, kpts_threshold=0.5):
     cap = cv2.VideoCapture(video_path)
+    session = model_inference(model_path)
+    outname = [i.name for i in session.get_outputs()]
+    inname = [i.name for i in session.get_inputs()]
+
     while cap.isOpened():
         ret, frame = cap.read()
         img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         image = img.copy()
         imshow_img, im = letterbox(image, new_shape=image_size, auto=False)[:2]
-        output = model_inference(model_path, im)
-        post_process(imshow_img, output, kpts=kpts,conf_threshold=conf_threshold, iou_threshold=iou_threshold, videomode=True,kpts_threshold=kpts_threshold)
+
+        inp = {inname[0]: im}
+        output = session.run(outname, inp)
+
+        post_process(imshow_img, output, kpts=kpts, conf_threshold=conf_threshold, iou_threshold=iou_threshold,
+                     videomode=True, kpts_threshold=kpts_threshold)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_path", type=str, default="../runs/train/exp3/weights/best.onnx",help="onnx模型位置")
-    parser.add_argument("--img_size", type=tuple, default=[640, 640],help="图像大小")
-    parser.add_argument("--img_path", type=str, default="../data/image/4.jpg",help="图片路径")
-    parser.add_argument("--video_path", type=str, default="../data/image/1.mp4",help="视频路径")
-    parser.add_argument("--nc", type=int, default=4,help="总类别")
-    parser.add_argument("--kpts", type=int, default=4,help="总点数")
-    parser.add_argument("--conf_thresholf", type=float, default=0.5,help="置信度")
-    parser.add_argument("--iou_threshold", type=float, default=0.5,help="nms的iou阈值")
-    parser.add_argument("--kpts_threshold", type=float, default=0.5,help="点的置信度")
+    parser.add_argument("--model_path", type=str, default="../runs/train/exp3/weights/best.onnx", help="onnx模型位置")
+    parser.add_argument("--img_size", type=tuple, default=[640, 640], help="图像大小")
+    parser.add_argument("--img_path", type=str, default="../data/image/4.jpg", help="图片路径")
+    parser.add_argument("--video_path", type=str, default="../data/image/1.mp4", help="视频路径")
+    parser.add_argument("--nc", type=int, default=4, help="总类别")
+    parser.add_argument("--kpts", type=int, default=4, help="总点数")
+    parser.add_argument("--conf_thresholf", type=float, default=0.5, help="置信度")
+    parser.add_argument("--iou_threshold", type=float, default=0.5, help="nms的iou阈值")
+    parser.add_argument("--kpts_threshold", type=float, default=0.5, help="点的置信度")
     opt = parser.parse_args()
 
     if not opt.img_path == "":
-        model_inference_image(model_path=opt.model_path, img_path=opt.img_path,kpts=opt.kpts,image_size=opt.img_size, conf_threshold=opt.conf_thresholf, iou_threshold=opt.iou_threshold,kpts_threshold=opt.kpts_threshold)
+        model_inference_image(model_path=opt.model_path, img_path=opt.img_path, kpts=opt.kpts, image_size=opt.img_size,
+                              conf_threshold=opt.conf_thresholf, iou_threshold=opt.iou_threshold,
+                              kpts_threshold=opt.kpts_threshold)
     if not opt.video_path == "":
-        model_inference_video(model_path=opt.model_path, video_path=opt.video_path,kpts=opt.kpts, image_size=opt.img_size, conf_threshold=opt.conf_thresholf, iou_threshold=opt.iou_threshold,kpts_threshold=opt.kpts_threshold)
+        model_inference_video(model_path=opt.model_path, video_path=opt.video_path, kpts=opt.kpts,
+                              image_size=opt.img_size, conf_threshold=opt.conf_thresholf,
+                              iou_threshold=opt.iou_threshold, kpts_threshold=opt.kpts_threshold)
