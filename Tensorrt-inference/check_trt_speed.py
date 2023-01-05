@@ -22,7 +22,7 @@ def run(model, img, warmup_iter, iter):
         model(img)
         torch.cuda.synchronize()
     end = time.time()
-    return ((end - start) * 1000) / float(iter),model(img)
+    return ((end - start) * 1000) / float(iter)
 
 
 if __name__ == "__main__":
@@ -42,11 +42,13 @@ if __name__ == "__main__":
     img = torch.randn(opt.img_shape)
     model = attempt_load(opt.torch_path, map_location=torch.device('cuda'))  # load FP32 model
     model.eval()
-    total_time,rescult1 = run(model.to(opt.device), img.to(opt.device), opt.warmup_iter, opt.iter)
+    total_time = run(model.to(opt.device), img.to(opt.device), opt.warmup_iter, opt.iter)
+    rescult1=model.to(opt.device)(img.to(opt.device))
     print('PT is  %.2f ms/img' % total_time)
 
     # -----------------------tensorrt-----------------------------------------
     model = TrtModel(opt.trt_path)
-    total_time,rescult2 = run(model, img.numpy(), opt.warmup_iter, opt.iter)
+    total_time = run(model, img.numpy(), opt.warmup_iter, opt.iter)
+    rescult2 = model(img)
     model.destroy()
     print('TensorRT is  %.2f ms/img' % total_time)
