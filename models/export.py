@@ -35,6 +35,7 @@ if __name__ == '__main__':
     parser.add_argument('--export-nms', action='store_true',
                         help='export the nms part in ONNX model')  # ONNX-only, #opt.grid has to be set True for nms export to work
     parser.add_argument('--export-pre', action='store_true', help='export the pre part in ONNX model')
+
     opt = parser.parse_args()
     opt.img_size *= 2 if len(opt.img_size) == 1 else 1  # expand
     print(opt)
@@ -99,11 +100,13 @@ if __name__ == '__main__':
 
     # ONNX export ------------------------------------------------------------------------------------------------------
     prefix = colorstr('ONNX:')
+    onnx_file=""
     try:
         import onnx
 
         print(f'{prefix} starting export with onnx {onnx.__version__}...')
         f = opt.weights.replace('.pt', '.onnx')  # filename
+        onnx_file=f
         if opt.export_nms:
             torch.onnx.export(model_nms, img, f, verbose=False, opset_version=11, input_names=['input'],
                               output_names=output_names,
@@ -119,6 +122,7 @@ if __name__ == '__main__':
         model_onnx = onnx.load(f)  # load onnx model
         onnx.checker.check_model(model_onnx)  # check onnx model
         # print(onnx.helper.printable_graph(model_onnx.graph))  # print
+
 
         # Simplify
         if opt.simplify:
@@ -138,19 +142,20 @@ if __name__ == '__main__':
     except Exception as e:
         print(f'{prefix} export failure: {e}')
 
+
     # CoreML export ----------------------------------------------------------------------------------------------------
-    prefix = colorstr('CoreML:')
-    try:
-        import coremltools as ct
-
-        print(f'{prefix} starting export with coremltools {ct.__version__}...')
-        # convert model from torchscript and apply pixel scaling as per detect.py
-        model = ct.convert(ts, inputs=[ct.ImageType(name='image', shape=img.shape, scale=1 / 255.0, bias=[0, 0, 0])])
-        f = opt.weights.replace('.pt', '.mlmodel')  # filename
-        model.save(f)
-        print(f'{prefix} export success, saved as {f} ({file_size(f):.1f} MB)')
-    except Exception as e:
-        print(f'{prefix} export failure: {e}')
-
-    # Finish
-    print(f'\nExport complete ({time.time() - t:.2f}s). Visualize with https://github.com/lutzroeder/netron.')
+    # prefix = colorstr('CoreML:')
+    # try:
+    #     import coremltools as ct
+    #
+    #     print(f'{prefix} starting export with coremltools {ct.__version__}...')
+    #     # convert model from torchscript and apply pixel scaling as per detect.py
+    #     model = ct.convert(ts, inputs=[ct.ImageType(name='image', shape=img.shape, scale=1 / 255.0, bias=[0, 0, 0])])
+    #     f = opt.weights.replace('.pt', '.mlmodel')  # filename
+    #     model.save(f)
+    #     print(f'{prefix} export success, saved as {f} ({file_size(f):.1f} MB)')
+    # except Exception as e:
+    #     print(f'{prefix} export failure: {e}')
+    #
+    # # Finish
+    # print(f'\nExport complete ({time.time() - t:.2f}s). Visualize with https://github.com/lutzroeder/netron.')
