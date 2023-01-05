@@ -1,1 +1,0 @@
-/home/yuesang/Project/PycharmProjects/yolov7-FourPoint/data/image/1.jpg
