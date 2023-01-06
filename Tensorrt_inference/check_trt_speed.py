@@ -92,6 +92,7 @@ class TrtModel():
         # Remove any context from the top of the context stack, deactivating it.
         self.ctx.pop()
 
+
 def run(model, img, warmup_iter, iter):
     print('start warm up...')
     for _ in tqdm(range(warmup_iter)):
@@ -125,7 +126,7 @@ if __name__ == "__main__":
     model = attempt_load(opt.torch_path, map_location=torch.device('cuda'))  # load FP32 model
     model.eval()
     total_time = run(model.to(opt.device), img.to(opt.device), opt.warmup_iter, opt.iter)
-    rescult1=model.to(opt.device)(img.to(opt.device))
+    rescult1 = model.to(opt.device)(img.to(opt.device))
     print('PT is  %.2f ms/img' % total_time)
 
     # -----------------------tensorrt-----------------------------------------
