@@ -31,7 +31,7 @@ if __name__ == '__main__':
     parser.add_argument('--grid', action='store_false', help='export Detect() layer grid')
     parser.add_argument('--device', default='cpu', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--dynamic', action='store_true', help='dynamic ONNX axes')  # ONNX-only
-    parser.add_argument('--simplify', action='store_false', help='simplify ONNX model')  # ONNX-only
+    parser.add_argument('--simplify', action='store_true', help='simplify ONNX model')  # ONNX-only
     parser.add_argument('--export-nms', action='store_true',
                         help='export the nms part in ONNX model')  # ONNX-only, #opt.grid has to be set True for nms export to work
     parser.add_argument('--export-pre', action='store_true', help='export the pre part in ONNX model')
