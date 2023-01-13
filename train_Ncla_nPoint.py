@@ -479,7 +479,7 @@ def train(hyp, opt, device, tb_writer=None):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', type=str, default='', help='initial weights path')
-    parser.add_argument('--cfg', type=str, default='cfg/yolov7-tiny-pose.yaml', help='model.yaml path')
+    parser.add_argument('--cfg', type=str, default='cfg/yolov7-w6-pose.yaml', help='model.yaml path')
     parser.add_argument('--data', type=str, default='data/RM.yaml', help='data.yaml path')
     parser.add_argument('--hyp', type=str, default='data/hyp.pose.yaml', help='hyperparameters path')
     parser.add_argument('--epochs', type=int, default=1000)

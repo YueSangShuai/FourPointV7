@@ -48,8 +48,6 @@ class TrtModel():
         bindings = []
 
         for binding in engine:
-            if binding == "output":
-                self.idx = engine.get_binding_index(binding)
             print('bingding:', binding, engine.get_binding_shape(binding))
             size = trt.volume(engine.get_binding_shape(binding)) * engine.max_batch_size
             dtype = trt.nptype(engine.get_binding_dtype(binding))
@@ -99,10 +97,10 @@ class TrtModel():
         np.copyto(host_inputs[0], img_np_nchw.ravel())
         cuda.memcpy_htod_async(cuda_inputs[0], host_inputs[0], stream)
         context.execute_async(batch_size=self.batch_size, bindings=bindings, stream_handle=stream.handle)
-        cuda.memcpy_dtoh_async(host_outputs[self.idx - 1], cuda_outputs[self.idx - 1], stream)
+        cuda.memcpy_dtoh_async(host_outputs[0], cuda_outputs[0], stream)
         stream.synchronize()
         self.ctx.pop()
-        return host_outputs[self.idx - 1]
+        return host_outputs[0]
 
     def destroy(self):
         # Remove any context from the top of the context stack, deactivating it.
@@ -275,7 +273,7 @@ def video_imshow(video_path, nc=1, kpts=17, conf_thresh=0.5, iou_thresh=0.5, kpt
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--img_path', type=str, default=r"../data/image/3.jpg", help='img path')
-    parser.add_argument('--trt_path', type=str, default=r"best.trt", help='trt_path')
+    parser.add_argument('--trt_path', type=str, default=r"/home/yuesang/Project/CLionProjects/FourPoint_tensorrtV7/AutoShoot/model/best.trt", help='trt_path')
     parser.add_argument('--output_shape', type=list, default=[1, 25200, 21],
                         help='input[1,3,640,640] ->  output[1,25200,16]')
     parser.add_argument('--video_path', default=r"../data/image/1.mp4",
