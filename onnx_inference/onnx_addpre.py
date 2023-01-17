@@ -28,8 +28,9 @@ class Preprocess(torch.nn.Module):
     def forward(self, x):
         # x原本是uint8的先转为float
         x = x[..., [2, 1, 0]]  # 产生了Gather节点。  BGR->RGB
+        x = x.permute(0, 3, 1, 2)
         x = x / 255.0
-        x = x.permute(0, 3, 1, 2)  #
+
         return x
 
 
@@ -78,7 +79,7 @@ def getMeronnx(opt):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--onnx_weights', type=str,
-                        default='../runs/train/exp3/weights/best.onnx',
+                        default='../onnx_inference/deloutput.onnx',
                         help='initial weights path')
     parser.add_argument('--img_size', nargs='+', type=int, default=640, help='inference size (pixels)')
     opt = parser.parse_args()

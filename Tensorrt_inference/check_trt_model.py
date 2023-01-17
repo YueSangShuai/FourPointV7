@@ -70,7 +70,7 @@ def parse_args():
     处理脚本参数
     """
     parser = argparse.ArgumentParser(description='检查TRT模型')
-    parser.add_argument('-m', dest='model_path', default="/home/yuesang/Project/CLionProjects/FourPoint_tensorrtV7/AutoShoot/model/best.trt", help='TRT模型路径', type=str)
+    parser.add_argument('-m', dest='model_path', default="/home/yuesang/Project/CLionProjects/FourPoint_tensorrt/AutoShoot/model/best.trt", help='TRT模型路径', type=str)
     parser.add_argument('-s', dest='image_size', default=640, help='图像尺寸，如336', type=int)
 
     args = parser.parse_args()

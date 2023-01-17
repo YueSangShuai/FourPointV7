@@ -107,64 +107,19 @@ class TrtModel():
         self.ctx.pop()
 
 
-def img_process(img_path, long_side=640, stride_max=32):
-    '''
-    图像预处理
-    '''
+def img_imshow(img_path, imgsize=None, nc=1, kpts=17, conf_thresh=0.5, iou_thresh=0.5, kpts_threshold=0.5):
+    if imgsize is None:
+        imgsize = [640, 640]
     orgimg = cv2.imread(img_path)
-    img0 = copy.deepcopy(orgimg)
-    h0, w0 = orgimg.shape[:2]  # orig hw
-    r = long_side / max(h0, w0)  # resize image to img_size
-    if r != 1:  # always resize down, only resize up if training with augmentation
-        interp = cv2.INTER_AREA if r < 1 else cv2.INTER_LINEAR
-        img0 = cv2.resize(img0, (int(w0 * r), int(h0 * r)), interpolation=interp)
-
-    imgsz = check_img_size(long_side, s=stride_max)  # check img_size
-
-    img = letterboxone(img0, new_shape=imgsz, auto=False)[0]  # auto True最小矩形   False固定尺度
-    # Convert
-    img = img[:, :, ::-1].transpose(2, 0, 1).copy()  # BGR to RGB, to 3x416x416
-    img = torch.from_numpy(img)
+    visual_img = cv2.resize(orgimg, imgsize, interpolation=cv2.INTER_LINEAR)
+    img = torch.from_numpy(visual_img)
     img = img.float()  # uint8 to fp16/32
-    img /= 255.0  # 0 - 255 to 0.0 - 1.0
-    if img.ndimension() == 3:
-        img = img.unsqueeze(0)
-    return img, orgimg
 
-
-def video_process(img, long_side=640, stride_max=32):
-    '''
-    图像预处理
-    '''
-    orgimg = copy.deepcopy(img)
-    img0 = copy.deepcopy(orgimg)
-    h0, w0 = orgimg.shape[:2]  # orig hw
-    r = long_side / max(h0, w0)  # resize image to img_size
-    if r != 1:  # always resize down, only resize up if training with augmentation
-        interp = cv2.INTER_AREA if r < 1 else cv2.INTER_LINEAR
-        img0 = cv2.resize(img0, (int(w0 * r), int(h0 * r)), interpolation=interp)
-
-    imgsz = check_img_size(long_side, s=stride_max)  # check img_size
-
-    img = letterboxone(img0, new_shape=imgsz, auto=False)[0]  # auto True最小矩形   False固定尺度
-    # Convert
-    img = img[:, :, ::-1].transpose(2, 0, 1).copy()  # BGR to RGB, to 3x416x416
-    img = torch.from_numpy(img)
-    img = img.float()  # uint8 to fp16/32
-    img /= 255.0  # 0 - 255 to 0.0 - 1.0
-    if img.ndimension() == 3:
-        img = img.unsqueeze(0)
-    return img, orgimg
-
-
-def img_imshow(img_path, nc=1, kpts=17, conf_thresh=0.5, iou_thresh=0.5, kpts_threshold=0.5):
-    img, orgimg = img_process(img_path)
     pred = model(img.numpy())  # forward
     rescults = np.split(pred, opt.output_shape[1])
     sorted_rescult = sorted(rescults, key=itemgetter(4), reverse=True)
     remove = np.zeros(len(rescults), int)
     rescult_data = []
-    visual_img = letterboxtwo(orgimg, new_shape=img.shape[2:], auto=False)[0]
 
     # NMS
     for idx in range(len(sorted_rescult)):
@@ -212,17 +167,22 @@ def img_imshow(img_path, nc=1, kpts=17, conf_thresh=0.5, iou_thresh=0.5, kpts_th
     cv2.waitKey(3000)
 
 
-def video_imshow(video_path, nc=1, kpts=17, conf_thresh=0.5, iou_thresh=0.5, kpts_threshold=0.5):
+def video_imshow(video_path, imgsize=None, nc=1, kpts=17, conf_thresh=0.5, iou_thresh=0.5, kpts_threshold=0.5):
+    if imgsize is None:
+        imgsize = [640, 640]
     cap = cv2.VideoCapture(video_path)
     while cap.isOpened():
         ret, frame = cap.read()
-        img, orgimg = video_process(frame)
+
+        visual_img = cv2.resize(frame, imgsize, interpolation=cv2.INTER_LINEAR)
+        img = torch.from_numpy(visual_img)
+        img = img.float()  # uint8 to fp16/32
+
         pred = model(img.numpy())  # forward
         rescults = np.split(pred, opt.output_shape[1])
         sorted_rescult = sorted(rescults, key=itemgetter(4), reverse=True)
         remove = np.zeros(len(rescults), int)
         rescult_data = []
-        visual_img = letterboxtwo(orgimg, new_shape=img.shape[2:], auto=False)[0]
 
         # NMS
         for idx in range(len(sorted_rescult)):
@@ -273,7 +233,10 @@ def video_imshow(video_path, nc=1, kpts=17, conf_thresh=0.5, iou_thresh=0.5, kpt
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--img_path', type=str, default=r"../data/image/3.jpg", help='img path')
-    parser.add_argument('--trt_path', type=str, default=r"/home/yuesang/Project/CLionProjects/FourPoint_tensorrtV7/AutoShoot/model/merge.trt", help='trt_path')
+    parser.add_argument("--img_size", type=tuple, default=[640, 640], help="图像大小")
+    parser.add_argument('--trt_path', type=str,
+                        default=r"/home/yuesang/Project/CLionProjects/FourPoint_tensorrtV7/AutoShoot/model/merge.trt",
+                        help='trt_path')
     parser.add_argument('--output_shape', type=list, default=[1, 25200, 21],
                         help='input[1,3,640,640] ->  output[1,25200,16]')
     parser.add_argument('--video_path', default=r"../data/image/1.mp4",
@@ -287,9 +250,11 @@ if __name__ == '__main__':
     model = TrtModel(opt.trt_path)
 
     if opt.img_path != "":
-        img_imshow(img_path=opt.img_path, nc=opt.nc, kpts=opt.kpts, conf_thresh=opt.conf_thresholf,
+        img_imshow(img_path=opt.img_path, imgsize=opt.img_size, nc=opt.nc, kpts=opt.kpts,
+                   conf_thresh=opt.conf_thresholf,
                    iou_thresh=opt.iou_threshold, kpts_threshold=opt.kpts_threshold)
     if opt.video_path != "":
-        video_imshow(video_path=opt.video_path, nc=opt.nc, kpts=opt.kpts, conf_thresh=opt.conf_thresholf,
-                   iou_thresh=opt.iou_threshold, kpts_threshold=opt.kpts_threshold)
+        video_imshow(video_path=opt.video_path, imgsize=opt.img_size, nc=opt.nc, kpts=opt.kpts,
+                     conf_thresh=opt.conf_thresholf,
+                     iou_thresh=opt.iou_threshold, kpts_threshold=opt.kpts_threshold)
     model.destroy()
