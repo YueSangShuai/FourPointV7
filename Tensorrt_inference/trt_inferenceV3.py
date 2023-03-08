@@ -253,7 +253,7 @@ if __name__ == '__main__':
         img_imshow(img_path=opt.img_path, imgsize=opt.img_size, nc=opt.nc, kpts=opt.kpts,
                    conf_thresh=opt.conf_thresholf,
                    iou_thresh=opt.iou_threshold, kpts_threshold=opt.kpts_threshold)
-    if opt.video_path != "":
+    elif opt.video_path != "":
         video_imshow(video_path=opt.video_path, imgsize=opt.img_size, nc=opt.nc, kpts=opt.kpts,
                      conf_thresh=opt.conf_thresholf,
                      iou_thresh=opt.iou_threshold, kpts_threshold=opt.kpts_threshold)

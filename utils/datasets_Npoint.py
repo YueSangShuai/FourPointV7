@@ -58,7 +58,7 @@ def exif_size(img):
 
 def create_dataloader(path, imgsz, batch_size, stride, opt, hyp=None, augment=False, cache=False, pad=0.0, rect=False,
                       rank=-1, world_size=1, workers=8, image_weights=False, quad=False, prefix='', tidl_load=False,
-                      kpt_label=False,kpt_num=17):
+                      kpt_label=False, kpt_num=17):
     # Make sure only the first process in DDP process the dataset first, and the following others can use the cache
     with torch_distributed_zero_first(rank):
         dataset = LoadImagesAndLabels(path, imgsz, batch_size,
@@ -351,14 +351,14 @@ def img2label_paths(img_paths):
 
 class LoadImagesAndLabels(Dataset):  # for training/testing
     def __init__(self, path, img_size=640, batch_size=16, augment=False, hyp=None, rect=False, image_weights=False,
-                 cache_images=False, single_cls=False, stride=32, pad=0.0, prefix='',square=False, tidl_load=False,
-                 kpt_label=True,kpt_num=17):
+                 cache_images=False, single_cls=False, stride=32, pad=0.0, prefix='', square=False, tidl_load=False,
+                 kpt_label=True, kpt_num=17):
         self.img_size = img_size
         self.augment = augment
         self.hyp = hyp
         self.image_weights = image_weights
         self.rect = False if image_weights else rect
-        self.rect=False
+        self.rect = False
         self.tidl_load = tidl_load
         self.mosaic = self.augment and not self.rect  # load 4 images at a time into a mosaic (only during training)
         self.mosaic_border = [-img_size // 2, -img_size // 2]
@@ -368,9 +368,9 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
         self.kpt_num = kpt_num
         self.flip_index = [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15]
 
-        self.flipUD_index = [1,0,3,2,5,4,7,6][:kpt_num]
+        self.flipUD_index = [1, 0, 3, 2, 5, 4, 7, 6][:kpt_num]
 
-        self.flipLR_index = [1,0,3,2,5,4,7,6,9,8,11,10,13,12,15,14,17,16,19,18][:kpt_num]
+        self.flipLR_index = [1, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14, 17, 16, 19, 18][:kpt_num]
 
         try:
             f = []  # image files
@@ -387,11 +387,13 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                         # f += [p.parent / x.lstrip(os.sep) for x in t]  # local to global path (pathlib)
                 else:
                     raise Exception(f'{prefix}{p} does not exist')
-            self.img_files = [x.replace('/', os.sep).split(' ')[0] for x in f if x.split(' ')[0].split('.')[-1].lower() in img_formats]
-            sorted_index = [i[0] for i in sorted(enumerate(self.img_files), key=lambda x:x[1])]
+            self.img_files = [x.replace('/', os.sep).split(' ')[0] for x in f if
+                              x.split(' ')[0].split('.')[-1].lower() in img_formats]
+            sorted_index = [i[0] for i in sorted(enumerate(self.img_files), key=lambda x: x[1])]
             self.img_files = [self.img_files[index] for index in sorted_index]
             if self.tidl_load:
-                self.img_sizes = [x.replace('/', os.sep).split(' ')[2].split(',') for x in f if x.split(' ')[0].split('.')[-1].lower() in img_formats]
+                self.img_sizes = [x.replace('/', os.sep).split(' ')[2].split(',') for x in f if
+                                  x.split(' ')[0].split('.')[-1].lower() in img_formats]
                 self.img_sizes = [self.img_sizes[index] for index in sorted_index]
                 self.img_sizes = [[int(dim_size) for dim_size in img_size] for img_size in self.img_sizes]
 
@@ -513,7 +515,8 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                             #     kpt = np.delete(l[i,5:], np.arange(2, l.shape[1]-5, 2))   # [:2*self.kpt_num]  #remove the occlusion paramater from the GT
                             #     kpts[i] = np.hstack((l[i, :5], kpt))
                             # l = kpts
-                            assert l.shape[1] == 5+ 2 * self.kpt_num, 'labels require 39 columns each after removing occlusion paramater'
+                            assert l.shape[
+                                       1] == 5 + 2 * self.kpt_num, 'labels require 39 columns each after removing occlusion paramater'
                         else:
                             assert l.shape[1] == 5, 'labels require 5 columns each'
                             assert (l[:, 1:5] <= 1).all(), 'non-normalized or out of bounds coordinate labels'
@@ -521,11 +524,13 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                         assert np.unique(l, axis=0).shape[0] == l.shape[0], 'duplicate labels'
                     else:
                         ne += 1  # label empty
-                        l = np.zeros((0, 5+ 2 * self.kpt_num), dtype=np.float32) if kpt_label else np.zeros((0, 5), dtype=np.float32)
+                        l = np.zeros((0, 5 + 2 * self.kpt_num), dtype=np.float32) if kpt_label else np.zeros((0, 5),
+                                                                                                             dtype=np.float32)
 
                 else:
                     nm += 1  # label missing
-                    l = np.zeros((0, 5+ 2 * self.kpt_num), dtype=np.float32) if kpt_label else np.zeros((0, 5), dtype=np.float32)
+                    l = np.zeros((0, 5 + 2 * self.kpt_num), dtype=np.float32) if kpt_label else np.zeros((0, 5),
+                                                                                                         dtype=np.float32)
 
                 x[im_file] = [l, shape, segments]
             except Exception as e:
@@ -578,8 +583,8 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
         else:
             # Load image
             img, (h0, w0), (h, w) = load_image(self, index)
-            if self. tidl_load:
-              h0, w0 = self.img_sizes[index][:-1]   #modify the oroginal size for tidll loaded images
+            if self.tidl_load:
+                h0, w0 = self.img_sizes[index][:-1]  # modify the oroginal size for tidll loaded images
             # Letterbox
             shape = self.batch_shapes[self.batch[index]] if self.rect else self.img_size  # final letterboxed shape
             before_shape = img.shape
@@ -589,7 +594,8 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
 
             labels = self.labels[index].copy()
             if labels.size:  # normalized xywh to pixel xyxy format
-                labels[:, 1:] = xywhn2xyxy(labels[:, 1:], ratio[0] * w, ratio[1] * h, padw=pad[0], padh=pad[1], kpt_label=self.kpt_label)
+                labels[:, 1:] = xywhn2xyxy(labels[:, 1:], ratio[0] * w, ratio[1] * h, padw=pad[0], padh=pad[1],
+                                           kpt_label=self.kpt_label)
 
         if self.augment:
             # Augment imagespace
@@ -617,16 +623,34 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
             labels[:, [1, 3]] /= img.shape[1]  # normalized width 0-1
             if self.kpt_label:
                 labels[:, 6::2] /= img.shape[0]  # normalized kpt heights 0-1
-                labels[:, 5::2] /= img.shape[1] # normalized kpt width 0-1
+                labels[:, 5::2] /= img.shape[1]  # normalized kpt width 0-1
 
         if self.augment:
+            if hyp['albumentations'] == 1:
+                # cv2.imshow("aaa", img)
+                import albumentations as A
+                transform = A.Compose([
+                    A.MotionBlur(blur_limit=hyp['blur_limit'], p=hyp['blur_limit_p'])
+                    # A.Blur(p=0.01),
+                    # A.MedianBlur(p=0.01),
+                    # A.ToGray(p=0.00),
+                    # A.CLAHE(p=1),
+                    # A.RandomBrightnessContrast(p=0.0),
+                    # A.RandomGamma(p=0.0),
+                    # A.ImageCompression(quality_lower=75, p=0.0)
+                ])
+                transformed = transform(image=img)
+                img = transformed['image']
+                # cv2.imshow("bbb",img)
+                # cv2.waitKey(0)
+
             # flip up-down
             if random.random() < hyp['flipud']:
                 img = np.flipud(img)
                 if nL:
                     labels[:, 2] = 1 - labels[:, 2]
                     if self.kpt_label:
-                        labels[:, 6::2]= (1-labels[:, 6::2])*(labels[:, 6::2]!=0)
+                        labels[:, 6::2] = (1 - labels[:, 6::2]) * (labels[:, 6::2] != 0)
 
             # flip left-right
             if random.random() < hyp['fliplr']:
@@ -634,7 +658,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                 if nL:
                     labels[:, 1] = 1 - labels[:, 1]
                     if self.kpt_label and self.kpt_num == 17:
-                        labels[:, 5::2] = (1 - labels[:, 5::2])*(labels[:, 5::2]!=0)
+                        labels[:, 5::2] = (1 - labels[:, 5::2]) * (labels[:, 5::2] != 0)
                         labels[:, 5::2] = labels[:, 5::2][:, self.flip_index]
                         labels[:, 6::2] = labels[:, 6::2][:, self.flip_index]
                     else:
@@ -642,20 +666,19 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                         labels[:, 5::2] = labels[:, 5::2][:, self.flipLR_index]
                         labels[:, 6::2] = labels[:, 6::2][:, self.flipLR_index]
 
-        num_kpts = (labels.shape[1]-5)//2
-        labels_out = torch.zeros((nL, 6+2*num_kpts)) if self.kpt_label else torch.zeros((nL, 6))
+        num_kpts = (labels.shape[1] - 5) // 2
+        labels_out = torch.zeros((nL, 6 + 2 * num_kpts)) if self.kpt_label else torch.zeros((nL, 6))
         if nL:
-            if  self.kpt_label:
+            if self.kpt_label:
                 labels_out[:, 1:] = torch.from_numpy(labels)
             else:
                 labels_out[:, 1:] = torch.from_numpy(labels[:, :5])
 
-
         # Convert
         img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
         img = np.ascontiguousarray(img)
-        #if np.any(np.array(before_shape)>639):
-        #print("\nbefore:", before_shape, "after:", img.shape)
+        # if np.any(np.array(before_shape)>639):
+        # print("\nbefore:", before_shape, "after:", img.shape)
         return torch.from_numpy(img), labels_out, self.img_files[index], shapes
 
     @staticmethod
@@ -770,7 +793,8 @@ def load_mosaic(self, index):
         # Labels
         labels, segments = self.labels[index].copy(), self.segments[index].copy()
         if labels.size:
-            labels[:, 1:] = xywhn2xyxy(labels[:, 1:], w, h, padw, padh, kpt_label=self.kpt_label)  # normalized xywh to pixel xyxy format
+            labels[:, 1:] = xywhn2xyxy(labels[:, 1:], w, h, padw, padh,
+                                       kpt_label=self.kpt_label)  # normalized xywh to pixel xyxy format
             segments = [xyn2xy(x, w, h, padw, padh) for x in segments]
         labels4.append(labels)
         segments4.extend(segments)
@@ -923,7 +947,7 @@ def letterbox(img, new_shape=(640, 640), color=(114, 114, 114), auto=True, scale
 
 
 def random_perspective(img, targets=(), segments=(), degrees=10, translate=.1, scale=.1, shear=10, perspective=0.0,
-                       border=(0, 0), kpt_label=False,kpt_num =17):
+                       border=(0, 0), kpt_label=False, kpt_num=17):
     # torchvision.transforms.RandomAffine(degrees=(-10, 10), translate=(.1, .1), scale=(.9, 1.1), shear=(-10, 10))
     # targets = [cls, xyxy]
 
@@ -1005,23 +1029,24 @@ def random_perspective(img, targets=(), segments=(), degrees=10, translate=.1, s
                 # xy_kpts = np.ones((n * 17, 3))
                 xy_kpts = np.ones((n * kpt_num, 3))
                 # xy_kpts[:, :2] = targets[:,5:].reshape(n*17, 2)  #num_kpt is hardcoded to 17
-                xy_kpts[:, :2] = targets[:,5:].reshape(n*kpt_num, 2)  #num_kpt is hardcoded to 17
-                xy_kpts = xy_kpts @ M.T # transform
+                xy_kpts[:, :2] = targets[:, 5:].reshape(n * kpt_num, 2)  # num_kpt is hardcoded to 17
+                xy_kpts = xy_kpts @ M.T  # transform
                 # xy_kpts = (xy_kpts[:, :2] / xy_kpts[:, 2:3] if perspective else xy_kpts[:, :2]).reshape(n, 34)  # perspective rescale or affine
-                xy_kpts = (xy_kpts[:, :2] / xy_kpts[:, 2:3] if perspective else xy_kpts[:, :2]).reshape(n, 2*kpt_num)  # perspective rescale or affine
-                xy_kpts[targets[:,5:]==0] = 0
+                xy_kpts = (xy_kpts[:, :2] / xy_kpts[:, 2:3] if perspective else xy_kpts[:, :2]).reshape(n,
+                                                                                                        2 * kpt_num)  # perspective rescale or affine
+                xy_kpts[targets[:, 5:] == 0] = 0
                 # x_kpts = xy_kpts[:, list(range(0,34,2))]
                 # y_kpts = xy_kpts[:, list(range(1,34,2))]
-                x_kpts = xy_kpts[:, list(range(0,2*kpt_num,2))]
-                y_kpts = xy_kpts[:, list(range(1,2*kpt_num,2))]
+                x_kpts = xy_kpts[:, list(range(0, 2 * kpt_num, 2))]
+                y_kpts = xy_kpts[:, list(range(1, 2 * kpt_num, 2))]
 
                 x_kpts[np.logical_or.reduce((x_kpts < 0, x_kpts > width, y_kpts < 0, y_kpts > height))] = 0
                 y_kpts[np.logical_or.reduce((x_kpts < 0, x_kpts > width, y_kpts < 0, y_kpts > height))] = 0
                 # xy_kpts[:, list(range(0, 34, 2))] = x_kpts
                 # xy_kpts[:, list(range(1, 34, 2))] = y_kpts
 
-                xy_kpts[:, list(range(0, 2*kpt_num, 2))] = x_kpts
-                xy_kpts[:, list(range(1, 2*kpt_num, 2))] = y_kpts
+                xy_kpts[:, list(range(0, 2 * kpt_num, 2))] = x_kpts
+                xy_kpts[:, list(range(1, 2 * kpt_num, 2))] = y_kpts
 
         # filter candidates
         i = box_candidates(box1=targets[:, 1:5].T * s, box2=new.T, area_thr=0.01 if use_segments else 0.10)

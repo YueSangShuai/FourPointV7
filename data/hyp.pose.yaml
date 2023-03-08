@@ -27,3 +27,7 @@ flipud: 0.0  # image flip up-down (probability)
 fliplr: 0.5  # image flip left-right (probability)
 mosaic: 1.0  # image mosaic (probability)
 mixup: 0.0  # image mixup (probability)
+
+albumentations: 1 #是否开启图像增强1为开启0为关闭
+blur_limit:  25 #运动模糊的概率
+blur_limit_p: 1.0 #运动模糊的概率
